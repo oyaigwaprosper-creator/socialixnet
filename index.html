@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulse — Modern Social Network</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Font: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Custom scrollbar polish & smooth transitions */
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes heartBounce {
+      0%, 100% { transform: scale(1); }
+      45% { transform: scale(1.32); }
+      75% { transform: scale(0.92); }
+    }
+    .heart-bounce {
+      animation: heartBounce 0.35s ease;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased selection:bg-indigo-100 selection:text-indigo-800">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none max-w-xs w-full"></div>
+
+  <!-- Mobile Top Header (Visible on < lg) -->
+  <header class="lg:hidden sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-sm">
+        <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
+      </div>
+      <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Pulse</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="mobile-search-toggle" class="p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 active:scale-95 transition" aria-label="Search">
+        <i data-lucide="search" class="w-5 h-5"></i>
+      </button>
+      <button id="mobile-profile-btn" class="flex items-center gap-2 p-1 pr-2.5 rounded-full bg-slate-100 hover:bg-slate-200/70 transition">
+        <div id="mobile-header-avatar" class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">U</div>
+        <span id="mobile-header-name" class="text-xs font-semibold text-slate-700 max-w-[80px] truncate">Guest</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile Collapsible Search Bar -->
+  <div id="mobile-search-bar" class="hidden lg:hidden sticky top-[61px] z-20 bg-white border-b border-slate-200 px-4 py-2.5">
+    <div class="relative">
+      <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+      <input id="mobile-search-input" type="text" placeholder="Search posts, #tags, or creators..."
+        class="w-full pl-10 pr-9 py-2 bg-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition" />
+      <button id="mobile-search-clear" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main 3-Column App Shell -->
+  <div class="max-w-7xl mx-auto px-0 sm:px-4 lg:px-6 flex justify-center min-h-screen pb-20 lg:pb-8">
+
+    <!-- LEFT SIDEBAR (Desktop Navigation) -->
+    <aside class="hidden lg:flex flex-col justify-between w-64 xl:w-72 shrink-0 sticky top-0 h-screen py-6 pr-6">
+      <div class="space-y-6">
+        <!-- Brand Logo -->
+        <div class="flex items-center justify-between px-3">
+          <button onclick="switchTab('home')" class="flex items-center gap-3 group focus:outline-none">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition">
+              <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
+            </div>
+            <div class="text-left">
+              <span class="font-extrabold text-2xl tracking-tight bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent block leading-none">Pulse</span>
+              <span class="text-[11px] font-medium text-emerald-600 flex items-center gap-1 mt-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live Cloud Feed
+              </span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Primary Navigation Links -->
+        <nav class="space-y-1.5" aria-label="Sidebar Navigation">
+          <button data-nav="home" onclick="switchTab('home')"
+            class="nav-item w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-semibold text-sm transition bg-indigo-50 text-indigo-700">
+            <i data-lucide="home" class="w-5 h-5"></i>
+            <span>Home Feed</span>
+          </button>
+          <button data-nav="explore" onclick="switchTab('explore')"
+            class="nav-item w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-semibold text-sm text-slate-600 hover:bg-slate-100 transition">
+            <i data-lucide="compass" class="w-5 h-5"></i>
+            <span>Explore & Tags</span>
+          </button>
+          <button data-nav="bookmarks" onclick="switchTab('bookmarks')"
+            class="nav-item w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-semibold text-sm text-slate-600 hover:bg-slate-100 transition">
+            <i data-lucide="bookmark" class="w-5 h-5"></i>
+            <span>Bookmarks</span>
+            <span id="nav-bookmark-count" class="ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-slate-200/70 text-slate-700">0</span>
+          </button>
+          <button data-nav="profile" onclick="switchTab('profile')"
+            class="nav-item w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-semibold text-sm text-slate-600 hover:bg-slate-100 transition">
+            <i data-lucide="user" class="w-5 h-5"></i>
+            <span>My Profile</span>
+          </button>
+        </nav>
+
+        <!-- Primary Create Post CTA -->
+        <button onclick="focusComposer()"
+          class="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold text-sm shadow-lg shadow-indigo-200 hover:shadow-indigo-300 active:scale-[0.98] transition flex items-center justify-center gap-2">
+          <i data-lucide="plus-circle" class="w-5 h-5"></i>
+          <span>Create New Post</span>
+        </button>
+      </div>
+
+      <!-- Current User Account Card -->
+      <div class="bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-sm">
+        <div class="flex items-center gap-3">
+          <div id="sidebar-avatar" class="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-base shrink-0 shadow-sm">
+            U
+          </div>
+          <div class="min-w-0 flex-1">
+            <p id="sidebar-name" class="font-bold text-sm text-slate-900 truncate">Loading...</p>
+            <p id="sidebar-handle" class="text-xs text-slate-500 truncate">@user</p>
+          </div>
+          <button onclick="openProfileModal()" title="Edit Profile"
+            class="p-2 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+          <span>Cloud ID</span>
+          <span id="sidebar-uid" class="font-mono text-slate-500 truncate max-w-[140px]" title="Full User ID">...</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER FEED COLUMN -->
+    <main class="w-full max-w-2xl flex-1 min-w-0 border-x-0 sm:border-x border-slate-200/80 bg-white sm:bg-slate-50/40 min-h-screen">
+
+      <!-- Sticky Desktop / Tablet View Header -->
+      <div class="sticky top-[61px] lg:top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 pt-3.5 pb-0">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h1 id="view-title" class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">Home Feed</h1>
+            <p id="view-subtitle" class="text-xs text-slate-500 hidden sm:block">Real-time updates from creators across Pulse</p>
+          </div>
+          <button onclick="openProfileModal()"
+            class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>Customize Profile</span>
+          </button>
+        </div>
+
+        <!-- Feed Filter Pills (Shown on Home & Explore) -->
+        <div id="feed-filter-bar" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-3">
+          <button data-filter="all" onclick="setFeedFilter('all')"
+            class="filter-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-white transition shrink-0">
+            All Posts
+          </button>
+          <button data-filter="following" onclick="setFeedFilter('following')"
+            class="filter-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200/70 transition shrink-0">
+            Following
+          </button>
+          <button data-filter="trending" onclick="setFeedFilter('trending')"
+            class="filter-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200/70 transition shrink-0 flex items-center gap-1">
+            <i data-lucide="flame" class="w-3.5 h-3.5 text-orange-500"></i> Trending
+          </button>
+          <div id="active-tag-pill" class="hidden items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shrink-0">
+            <span id="active-tag-label">#tag</span>
+            <button onclick="clearTagFilter()" class="hover:text-indigo-200">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE HEADER CARD (Visible only when Profile tab is active) -->
+      <section id="profile-view-header" class="hidden bg-white border-b border-slate-200/80 animate-pop">
+        <div class="h-28 sm:h-36 bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 relative">
+          <button onclick="openProfileModal()"
+            class="absolute bottom-3 right-4 px-3.5 py-1.5 rounded-xl bg-white/95 hover:bg-white text-slate-900 text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Edit Profile
+          </button>
+        </div>
+        <div class="px-4 sm:px-6 pb-5">
+          <div class="relative -mt-12 mb-3 flex items-end justify-between">
+            <div id="profile-page-avatar" class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl border-4 border-white bg-indigo-600 text-white flex items-center justify-center text-2xl sm:text-3xl font-extrabold shadow-md">
+              U
+            </div>
+          </div>
+          <h2 id="profile-page-name" class="text-xl font-extrabold text-slate-900">Creator Name</h2>
+          <p id="profile-page-handle" class="text-sm text-slate-500 font-medium">@handle</p>
+          <p id="profile-page-bio" class="mt-2.5 text-sm text-slate-700 leading-relaxed">Building cool things on Pulse.</p>
+
+          <div class="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span class="text-slate-500 font-medium">Shareable Cloud User ID:</span>
+            <code id="profile-page-uid" class="font-mono text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200 break-all">...</code>
+          </div>
+
+          <div class="mt-4 flex items-center gap-6 text-sm">
+            <div>
+              <span id="profile-stat-posts" class="font-extrabold text-slate-900">0</span>
+              <span class="text-slate-500 ml-1">Posts</span>
+            </div>
+            <div>
+              <span id="profile-stat-following" class="font-extrabold text-slate-900">0</span>
+              <span class="text-slate-500 ml-1">Following</span>
+            </div>
+            <div>
+              <span id="profile-stat-likes" class="font-extrabold text-slate-900">0</span>
+              <span class="text-slate-500 ml-1">Likes Received</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- POST COMPOSER CARD (Visible on Home & Profile) -->
+      <section id="post-composer-card" class="bg-white border-b border-slate-200/80 p-4 sm:px-6 sm:py-5">
+        <div class="flex gap-3.5">
+          <div id="composer-avatar" class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+            U
+          </div>
+          <div class="flex-1 min-w-0 space-y-3">
+            <textarea id="post-content-input" rows="3" maxlength="500"
+              placeholder="What's happening? Share an update, idea, or project..."
+              class="w-full resize-none border-0 bg-transparent text-slate-900 placeholder-slate-400 text-sm sm:text-base focus:outline-none leading-relaxed"></textarea>
+
+            <!-- Optional Image Attachment Drawer -->
+            <div id="image-attachment-drawer" class="hidden space-y-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200/80 animate-pop">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-700">Attach Photo URL or Pick Preset</span>
+                <button type="button" onclick="toggleImageDrawer(false)" class="text-slate-400 hover:text-slate-600">
+                  <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+              </div>
+              <input id="post-image-url" type="url" placeholder="Paste image URL (https://...)"
+                oninput="previewComposerImage(this.value)"
+                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <!-- Quick Curated Preset Photos -->
+              <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1">
+                <span class="text-[11px] text-slate-400 shrink-0">Presets:</span>
+                <button type="button" onclick="selectPresetPhoto('https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=900&q=80')"
+                  class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-400 text-[11px] font-medium text-slate-600 shrink-0 transition">
+                  💻 Workspace
+                </button>
+                <button type="button" onclick="selectPresetPhoto('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=900&q=80')"
+                  class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-400 text-[11px] font-medium text-slate-600 shrink-0 transition">
+                  🏔️ Mountain Vista
+                </button>
+                <button type="button" onclick="selectPresetPhoto('https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=900&q=80')"
+                  class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-400 text-[11px] font-medium text-slate-600 shrink-0 transition">
+                  ⚡ Code Screen
+                </button>
+                <button type="button" onclick="selectPresetPhoto('https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=900&q=80')"
+                  class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-400 text-[11px] font-medium text-slate-600 shrink-0 transition">
+                  🎧 Studio Vibes
+                </button>
+              </div>
+              <div id="composer-image-preview-wrap" class="hidden relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 max-h-52">
+                <img id="composer-image-preview" src="" alt="Preview" class="w-full h-48 object-cover" />
+              </div>
+            </div>
+
+            <!-- Category / Tag Selector -->
+            <div class="flex flex-wrap items-center gap-1.5 pt-1">
+              <span class="text-[11px] font-medium text-slate-400 mr-1">Topic:</span>
+              <button type="button" data-composer-tag="General" onclick="selectComposerTag('General')"
+                class="composer-tag-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 transition">
+                #General
+              </button>
+              <button type="button" data-composer-tag="Tech" onclick="selectComposerTag('Tech')"
+                class="composer-tag-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 border border-transparent hover:bg-slate-200/70 transition">
+                #Tech
+              </button>
+              <button type="button" data-composer-tag="Design" onclick="selectComposerTag('Design')"
+                class="composer-tag-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 border border-transparent hover:bg-slate-200/70 transition">
+                #Design
+              </button>
+              <button type="button" data-composer-tag="BuildInPublic" onclick="selectComposerTag('BuildInPublic')"
+                class="composer-tag-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 border border-transparent hover:bg-slate-200/70 transition">
+                #BuildInPublic
+              </button>
+              <button type="button" data-composer-tag="Lifestyle" onclick="selectComposerTag('Lifestyle')"
+                class="composer-tag-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 border border-transparent hover:bg-slate-200/70 transition">
+                #Lifestyle
+              </button>
+            </div>
+
+            <!-- Composer Toolbar -->
+            <div class="flex items-center justify-between pt-2.5 border-t border-slate-100">
+              <div class="flex items-center gap-1">
+                <button type="button" onclick="toggleImageDrawer()"
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-600 hover:bg-indigo-50 transition">
+                  <i data-lucide="image" class="w-4 h-4"></i>
+                  <span>Add Photo</span>
+                </button>
+              </div>
+              <div class="flex items-center gap-3">
+                <span id="char-counter" class="text-xs font-medium text-slate-400">0/500</span>
+                <button id="publish-post-btn" type="button" onclick="handleCreatePost()"
+                  class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs sm:text-sm font-semibold shadow-sm transition active:scale-95 flex items-center gap-1.5">
+                  <span>Post</span>
+                  <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- EXPLORE TOPICS BANNER (Shown when Explore tab is active) -->
+      <section id="explore-topics-panel" class="hidden bg-white border-b border-slate-200/80 p-4 sm:px-6 space-y-3 animate-pop">
+        <h2 class="text-sm font-bold text-slate-800">Browse by Popular Topics</h2>
+        <div id="explore-tags-grid" class="flex flex-wrap gap-2"></div>
+      </section>
+
+      <!-- FEED POSTS STREAM -->
+      <div id="feed-container" class="divide-y divide-slate-200/80">
+        <!-- Loading Skeletons -->
+        <div class="p-6 space-y-4">
+          <div class="flex items-center gap-3 animate-pulse">
+            <div class="w-11 h-11 rounded-2xl bg-slate-200"></div>
+            <div class="space-y-2 flex-1">
+              <div class="h-3.5 bg-slate-200 rounded w-1/3"></div>
+              <div class="h-3 bg-slate-100 rounded w-1/4"></div>
+            </div>
+          </div>
+          <div class="space-y-2 animate-pulse">
+            <div class="h-3.5 bg-slate-200 rounded w-full"></div>
+            <div class="h-3.5 bg-slate-200 rounded w-5/6"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- RIGHT SIDEBAR (Search, Trending & Suggested Creators) -->
+    <aside class="hidden lg:block w-80 xl:w-88 shrink-0 sticky top-0 h-screen overflow-y-auto no-scrollbar py-6 pl-6 space-y-5">
+
+      <!-- Search Input -->
+      <div class="relative">
+        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+        <input id="desktop-search-input" type="text" placeholder="Search posts, #tags, or people..."
+          class="w-full pl-11 pr-9 py-3 bg-white border border-slate-200/90 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" />
+        <button id="desktop-search-clear" class="hidden absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Trending Topics Card -->
+      <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-3.5">
+        <div class="flex items-center justify-between">
+          <h2 class="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+            <i data-lucide="trending-up" class="w-4 h-4 text-indigo-600"></i>
+            <span>Trending Topics</span>
+          </h2>
+          <span class="text-[11px] font-medium text-slate-400">Live</span>
+        </div>
+        <div id="trending-topics-list" class="space-y-2">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Who to Follow Card -->
+      <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-3.5">
+        <div class="flex items-center justify-between">
+          <h2 class="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+            <i data-lucide="users" class="w-4 h-4 text-indigo-600"></i>
+            <span>Creators to Follow</span>
+          </h2>
+        </div>
+        <div id="suggested-creators-list" class="space-y-3">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Footer Info -->
+      <p class="text-[11px] text-slate-400 px-2 leading-relaxed">
+        Pulse Cloud Social • Real-time Firestore persistence enabled across sessions and devices.
+      </p>
+    </aside>
+  </div>
+
+  <!-- MOBILE BOTTOM NAVIGATION BAR (Visible on < lg) -->
+  <nav class="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-2 py-1.5 flex items-center justify-around">
+    <button data-mobile-nav="home" onclick="switchTab('home')"
+      class="mobile-nav-btn flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-indigo-600 font-semibold">
+      <i data-lucide="home" class="w-5 h-5"></i>
+      <span class="text-[10px]">Home</span>
+    </button>
+    <button data-mobile-nav="explore" onclick="switchTab('explore')"
+      class="mobile-nav-btn flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-slate-500 font-medium">
+      <i data-lucide="compass" class="w-5 h-5"></i>
+      <span class="text-[10px]">Explore</span>
+    </button>
+    <button onclick="focusComposer()"
+      class="w-11 h-11 -mt-4 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-300 flex items-center justify-center active:scale-95 transition"
+      aria-label="New Post">
+      <i data-lucide="plus" class="w-6 h-6"></i>
+    </button>
+    <button data-mobile-nav="bookmarks" onclick="switchTab('bookmarks')"
+      class="mobile-nav-btn flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-slate-500 font-medium">
+      <i data-lucide="bookmark" class="w-5 h-5"></i>
+      <span class="text-[10px]">Saved</span>
+    </button>
+    <button data-mobile-nav="profile" onclick="switchTab('profile')"
+      class="mobile-nav-btn flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-slate-500 font-medium">
+      <i data-lucide="user" class="w-5 h-5"></i>
+      <span class="text-[10px]">Profile</span>
+    </button>
+  </nav>
+
+  <!-- PROFILE SETUP / EDIT MODAL -->
+  <div id="profile-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-pop space-y-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-extrabold text-slate-900">Your Creator Profile</h3>
+          <p class="text-xs text-slate-500">Saved to cloud and shown on your posts & comments</p>
+        </div>
+        <button onclick="closeProfileModal()" class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="profile-form" onsubmit="saveUserProfile(event)" class="space-y-4">
+        <!-- Live Avatar Preview + Color & Icon Picker -->
+        <div class="flex items-center gap-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+          <div id="modal-avatar-preview" class="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl font-extrabold shadow-sm shrink-0">
+            U
+          </div>
+          <div class="space-y-2 flex-1">
+            <span class="text-xs font-semibold text-slate-700 block">Avatar Theme Color</span>
+            <div id="avatar-color-picker" class="flex flex-wrap gap-2">
+              <button type="button" data-color="bg-indigo-600" onclick="selectAvatarColor('bg-indigo-600')" class="w-6 h-6 rounded-full bg-indigo-600 ring-2 ring-offset-2 ring-indigo-600"></button>
+              <button type="button" data-color="bg-emerald-600" onclick="selectAvatarColor('bg-emerald-600')" class="w-6 h-6 rounded-full bg-emerald-600"></button>
+              <button type="button" data-color="bg-rose-600" onclick="selectAvatarColor('bg-rose-600')" class="w-6 h-6 rounded-full bg-rose-600"></button>
+              <button type="button" data-color="bg-amber-500" onclick="selectAvatarColor('bg-amber-500')" class="w-6 h-6 rounded-full bg-amber-500"></button>
+              <button type="button" data-color="bg-violet-600" onclick="selectAvatarColor('bg-violet-600')" class="w-6 h-6 rounded-full bg-violet-600"></button>
+              <button type="button" data-color="bg-sky-600" onclick="selectAvatarColor('bg-sky-600')" class="w-6 h-6 rounded-full bg-sky-600"></button>
+            </div>
+            <div class="flex items-center gap-1.5 pt-1">
+              <span class="text-[11px] text-slate-500 mr-1">Badge:</span>
+              <button type="button" onclick="selectAvatarEmoji('')" class="px-2 py-0.5 text-xs rounded bg-white border border-slate-200 hover:border-indigo-400">Initials</button>
+              <button type="button" onclick="selectAvatarEmoji('🚀')" class="px-2 py-0.5 text-xs rounded bg-white border border-slate-200 hover:border-indigo-400">🚀</button>
+              <button type="button" onclick="selectAvatarEmoji('⚡')" class="px-2 py-0.5 text-xs rounded bg-white border border-slate-200 hover:border-indigo-400">⚡</button>
+              <button type="button" onclick="selectAvatarEmoji('🎨')" class="px-2 py-0.5 text-xs rounded bg-white border border-slate-200 hover:border-indigo-400">🎨</button>
+              <button type="button" onclick="selectAvatarEmoji('🌍')" class="px-2 py-0.5 text-xs rounded bg-white border border-slate-200 hover:border-indigo-400">🌍</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Display Name</label>
+          <input id="input-display-name" type="text" required maxlength="32" placeholder="e.g. Maya Lin"
+            oninput="updateModalAvatarPreview()"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Handle</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">@</span>
+            <input id="input-handle" type="text" required maxlength="24" placeholder="mayalin"
+              class="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Bio</label>
+          <textarea id="input-bio" rows="2" maxlength="160" placeholder="Tell the community what you're into..."
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2.5 pt-2">
+          <button type="button" onclick="closeProfileModal()"
+            class="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">
+            Cancel
+          </button>
+          <button type="submit"
+            class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition">
+            Save Profile
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRMATION MODAL (No window.confirm used) -->
+  <div id="delete-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 animate-pop space-y-4">
+      <div class="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
+        <i data-lucide="trash-2" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h3 class="text-base font-extrabold text-slate-900">Delete this post?</h3>
+        <p class="text-xs text-slate-500 mt-1">This will permanently remove the post and its comments from the shared feed.</p>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button onclick="closeDeleteModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">
+          Cancel
+        </button>
+        <button id="confirm-delete-btn" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition">
+          Delete Post
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIREBASE & APPLICATION LOGIC -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      onSnapshot,
+      collection,
+      getDocs,
+      arrayUnion,
+      arrayRemove
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // --- Firebase Configuration & Initialization ---
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'pulse-social-default';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+    let app = null;
+    let auth = null;
+    let db = null;
+
+    if (firebaseConfig) {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+    }
+
+    // --- Application State ---
+    const state = {
+      user: null,
+      profile: {
+        displayName: 'New Explorer',
+        handle: 'explorer',
+        bio: 'Exploring ideas, sharing updates, and connecting on Pulse.',
+        avatarColor: 'bg-indigo-600',
+        avatarEmoji: '',
+        following: ['creator_maya', 'creator_devon'],
+        bookmarks: []
+      },
+      posts: [],
+      creators: [],
+      activeTab: 'home', // 'home' | 'explore' | 'bookmarks' | 'profile'
+      feedFilter: 'all', // 'all' | 'following' | 'trending'
+      selectedTag: null,
+      searchQuery: '',
+      composerTag: 'General',
+      modalColor: 'bg-indigo-600',
+      modalEmoji: '',
+      openCommentThreads: new Set(),
+      pendingDeletePostId: null
+    };
+
+    // --- Starter Seed Data (Used if public posts collection is empty) ---
+    const STARTER_CREATORS = [
+      {
+        uid: 'creator_maya',
+        displayName: 'Maya Lin',
+        handle: 'mayalin',
+        bio: 'Product designer & coffee enthusiast crafting calm digital spaces.',
+        avatarColor: 'bg-violet-600',
+        avatarEmoji: '🎨'
+      },
+      {
+        uid: 'creator_devon',
+        displayName: 'Devon Brooks',
+        handle: 'devonbuilds',
+        bio: 'Full-stack engineer shipping open-source tools & cloud apps.',
+        avatarColor: 'bg-emerald-600',
+        avatarEmoji: '⚡'
+      },
+      {
+        uid: 'creator_amara',
+        displayName: 'Amara Okafor',
+        handle: 'amara_codes',
+        bio: 'Tech storyteller, hiker, and community builder.',
+        avatarColor: 'bg-rose-600',
+        avatarEmoji: '🌍'
+      }
+    ];
+
+    const STARTER_POSTS = [
+      {
+        authorId: 'creator_maya',
+        authorName: 'Maya Lin',
+        authorHandle: 'mayalin',
+        authorColor: 'bg-violet-600',
+        authorEmoji: '🎨',
+        content: 'Just wrapped up a fresh UI refresh for our mobile workspace! Clean typography, generous breathing room, and fast tactile interactions make all the difference. What are you designing this week?',
+        tag: 'Design',
+        imageUrl: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=900&q=80',
+        likes: ['creator_devon', 'creator_amara'],
+        comments: [
+          {
+            id: 'c_seed_1',
+            authorId: 'creator_devon',
+            authorName: 'Devon Brooks',
+            authorHandle: 'devonbuilds',
+            authorColor: 'bg-emerald-600',
+            authorEmoji: '⚡',
+            text: 'Love the contrast and spacing on this! Super crisp.',
+            createdAt: Date.now() - 1000 * 60 * 35
+          }
+        ],
+        createdAt: Date.now() - 1000 * 60 * 95
+      },
+      {
+        authorId: 'creator_devon',
+        authorName: 'Devon Brooks',
+        authorHandle: 'devonbuilds',
+        authorColor: 'bg-emerald-600',
+        authorEmoji: '⚡',
+        content: 'Shipping real-time apps used to require managing WebSocket clusters from scratch. Now with reactive cloud listeners, posts, likes, and comments sync across devices in milliseconds. #BuildInPublic',
+        tag: 'BuildInPublic',
+        imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=900&q=80',
+        likes: ['creator_maya'],
+        comments: [],
+        createdAt: Date.now() - 1000 * 60 * 52
+      },
+      {
+        authorId: 'creator_amara',
+        authorName: 'Amara Okafor',
+        authorHandle: 'amara_codes',
+        authorColor: 'bg-rose-600',
+        authorEmoji: '🌍',
+        content: 'Stepped away from the keyboard for an early morning ridge hike before diving into code reviews. Fresh air is honestly the best debugging tool there is.',
+        tag: 'Lifestyle',
+        imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=900&q=80',
+        likes: ['creator_maya', 'creator_devon'],
+        comments: [
+          {
+            id: 'c_seed_2',
+            authorId: 'creator_maya',
+            authorName: 'Maya Lin',
+            authorHandle: 'mayalin',
+            authorColor: 'bg-violet-600',
+            authorEmoji: '🎨',
+            text: 'That view is unreal! Adding this to my weekend list.',
+            createdAt: Date.now() - 1000 * 60 * 12
+          }
+        ],
+        createdAt: Date.now() - 1000 * 60 * 22
+      }
+    ];
+
+    // --- Helper Utilities ---
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatRelativeTime(timestamp) {
+      const diffSec = Math.max(1, Math.floor((Date.now() - timestamp) / 1000));
+      if (diffSec < 60) return 'Just now';
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return `${diffMin}m`;
+      const diffHr = Math.floor(diffMin / 60);
+      if (diffHr < 24) return `${diffHr}h`;
+      const diffDay = Math.floor(diffHr / 24);
+      if (diffDay < 7) return `${diffDay}d`;
+      return new Date(timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+
+    function getAvatarContent(name, emoji) {
+      if (emoji && emoji.trim()) return emoji;
+      const clean = (name || 'U').trim();
+      return clean.charAt(0).toUpperCase();
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = type === 'error'
+        ? 'bg-rose-600 text-white'
+        : type === 'success'
+          ? 'bg-slate-900 text-white'
+          : 'bg-indigo-600 text-white';
+      toast.className = `${colors} px-4 py-3 rounded-2xl shadow-lg text-xs font-semibold flex items-center justify-between gap-3 pointer-events-auto animate-pop`;
+      toast.innerHTML = `<span>${escapeHTML(message)}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-6px)';
+        toast.style.transition = 'all 0.2s ease';
+        setTimeout(() => toast.remove(), 220);
+      }, 2800);
+    }
+
+    // --- Authentication & Cloud Initialization ---
+    async function initApp() {
+      lucide.createIcons();
+      setupEventListeners();
+
+      if (!auth || !db) {
+        showToast('Running in offline preview mode', 'info');
+        loadOfflineFallback();
+        return;
+      }
+
+      try {
+        // RULE 3: Authenticate FIRST before any Firestore operations
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+          if (!user) return;
+          state.user = user;
+          await ensureUserProfile(user);
+          await seedDatabaseIfEmpty();
+          subscribeToCloudData();
+        });
+      } catch (err) {
+        console.error('Auth initialization error:', err);
+        showToast('Could not connect to cloud auth. Using local session.', 'error');
+        loadOfflineFallback();
+      }
+    }
+
+    function loadOfflineFallback() {
+      state.user = { uid: 'local_guest_' + Math.floor(Math.random() * 10000) };
+      state.creators = [...STARTER_CREATORS];
+      state.posts = STARTER_POSTS.map((p, idx) => ({ id: 'seed_' + idx, ...p }));
+      renderAll();
+    }
+
+    async function ensureUserProfile(user) {
+      if (!user || !db) return;
+      const privateProfileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
+      const publicCreatorRef = doc(db, 'artifacts', appId, 'public', 'data', 'creators', user.uid);
+
+      try {
+        const snap = await getDoc(privateProfileRef);
+        if (snap.exists()) {
+          state.profile = { ...state.profile, ...snap.data() };
+        } else {
+          const shortTag = user.uid.slice(0, 5).toLowerCase();
+          state.profile = {
+            displayName: `Creator ${shortTag.toUpperCase()}`,
+            handle: `creator_${shortTag}`,
+            bio: 'Sharing ideas, building projects, and exploring Pulse.',
+            avatarColor: 'bg-indigo-600',
+            avatarEmoji: '🚀',
+            following: ['creator_maya', 'creator_devon'],
+            bookmarks: []
+          };
+          await setDoc(privateProfileRef, state.profile);
+        }
+
+        // Sync public creator directory card
+        await setDoc(publicCreatorRef, {
+          uid: user.uid,
+          displayName: state.profile.displayName,
+          handle: state.profile.handle,
+          bio: state.profile.bio,
+          avatarColor: state.profile.avatarColor,
+          avatarEmoji: state.profile.avatarEmoji || ''
+        }, { merge: true });
+
+        updateProfileUI();
+      } catch (err) {
+        console.error('Error loading user profile:', err);
+      }
+    }
+
+    async function seedDatabaseIfEmpty() {
+      if (!state.user || !db) return;
+      try {
+        const postsCol = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
+        const snapshot = await getDocs(postsCol);
+        if (snapshot.empty) {
+          // Seed starter creators
+          for (const creator of STARTER_CREATORS) {
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'creators', creator.uid), creator);
+          }
+          // Seed starter posts
+          for (const post of STARTER_POSTS) {
+            await addDoc(postsCol, post);
+          }
+        }
+      } catch (err) {
+        console.error('Error seeding starter data:', err);
+      }
+    }
+
+    function subscribeToCloudData() {
+      if (!state.user || !db) return;
+
+      // 1. Real-time Posts Listener (Simple collection query per Rule 2)
+      const postsCol = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
+      onSnapshot(
+        postsCol,
+        (snapshot) => {
+          const loadedPosts = [];
+          snapshot.forEach((docSnap) => {
+            loadedPosts.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          // Sort in JavaScript memory (newest first)
+          loadedPosts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          state.posts = loadedPosts;
+          renderAll();
+        },
+        (error) => {
+          console.error('Posts listener error:', error);
+          showToast('Error syncing live feed', 'error');
+        }
+      );
+
+      // 2. Real-time Creators Directory Listener
+      const creatorsCol = collection(db, 'artifacts', appId, 'public', 'data', 'creators');
+      onSnapshot(
+        creatorsCol,
+        (snapshot) => {
+          const loadedCreators = [];
+          snapshot.forEach((docSnap) => {
+            loadedCreators.push({ uid: docSnap.id, ...docSnap.data() });
+          });
+          state.creators = loadedCreators;
+          renderRightSidebar();
+        },
+        (error) => {
+          console.error('Creators listener error:', error);
+        }
+      );
+    }
+
+    // --- UI Synchronization & Rendering ---
+    function updateProfileUI() {
+      const { displayName, handle, bio, avatarColor, avatarEmoji, bookmarks, following } = state.profile;
+      const uid = state.user?.uid || 'guest';
+      const avatarText = getAvatarContent(displayName, avatarEmoji);
+
+      // Sidebar & Mobile Header
+      document.getElementById('sidebar-name').textContent = displayName;
+      document.getElementById('sidebar-handle').textContent = `@${handle}`;
+      document.getElementById('sidebar-uid').textContent = uid;
+      document.getElementById('mobile-header-name').textContent = displayName;
+
+      const avatarEls = [
+        document.getElementById('sidebar-avatar'),
+        document.getElementById('mobile-header-avatar'),
+        document.getElementById('composer-avatar'),
+        document.getElementById('profile-page-avatar')
+      ];
+      avatarEls.forEach((el) => {
+        if (!el) return;
+        el.className = el.className.replace(/bg-[a-z]+-\d+/g, '') + ` ${avatarColor}`;
+        el.textContent = avatarText;
+      });
+
+      // Bookmark counter badge
+      document.getElementById('nav-bookmark-count').textContent = (bookmarks || []).length;
+
+      // Profile page header
+      document.getElementById('profile-page-name').textContent = displayName;
+      document.getElementById('profile-page-handle').textContent = `@${handle}`;
+      document.getElementById('profile-page-bio').textContent = bio || 'No bio added yet.';
+      document.getElementById('profile-page-uid').textContent = uid;
+
+      // Calculate user stats
+      const myPosts = state.posts.filter((p) => p.authorId === uid);
+      const likesReceived = myPosts.reduce((sum, p) => sum + (p.likes?.length || 0), 0);
+      document.getElementById('profile-stat-posts').textContent = myPosts.length;
+      document.getElementById('profile-stat-following').textContent = (following || []).length;
+      document.getElementById('profile-stat-likes').textContent = likesReceived;
+    }
+
+    function renderAll() {
+      updateProfileUI();
+      renderFeed();
+      renderRightSidebar();
+      renderExploreTopics();
+      lucide.createIcons();
+    }
+
+    function getFilteredPosts() {
+      const uid = state.user?.uid;
+      let list = [...state.posts];
+
+      // Tab-level filtering
+      if (state.activeTab === 'bookmarks') {
+        const savedIds = new Set(state.profile.bookmarks || []);
+        list = list.filter((p) => savedIds.has(p.id));
+      } else if (state.activeTab === 'profile') {
+        list = list.filter((p) => p.authorId === uid);
+      } else {
+        // Home or Explore feed filters
+        if (state.feedFilter === 'following') {
+          const followingSet = new Set(state.profile.following || []);
+          list = list.filter((p) => followingSet.has(p.authorId) || p.authorId === uid);
+        } else if (state.feedFilter === 'trending') {
+          list.sort((a, b) => {
+            const scoreA = (a.likes?.length || 0) * 2 + (a.comments?.length || 0) * 3;
+            const scoreB = (b.likes?.length || 0) * 2 + (b.comments?.length || 0) * 3;
+            return scoreB - scoreA;
+          });
+        }
+      }
+
+      // Tag filter
+      if (state.selectedTag) {
+        const target = state.selectedTag.toLowerCase();
+        list = list.filter(
+          (p) =>
+            (p.tag && p.tag.toLowerCase() === target) ||
+            (p.content && p.content.toLowerCase().includes(`#${target}`))
+        );
+      }
+
+      // Search query filter
+      if (state.searchQuery.trim()) {
+        const q = state.searchQuery.trim().toLowerCase();
+        list = list.filter(
+          (p) =>
+            (p.content && p.content.toLowerCase().includes(q)) ||
+            (p.authorName && p.authorName.toLowerCase().includes(q)) ||
+            (p.authorHandle && p.authorHandle.toLowerCase().includes(q)) ||
+            (p.tag && p.tag.toLowerCase().includes(q))
+        );
+      }
+
+      return list;
+    }
+
+    function renderFeed() {
+      const container = document.getElementById('feed-container');
+      const posts = getFilteredPosts();
+      const currentUid = state.user?.uid;
+      const followingSet = new Set(state.profile.following || []);
+      const bookmarkSet = new Set(state.profile.bookmarks || []);
+
+      if (posts.length === 0) {
+        container.innerHTML = `
+          <div class="py-16 px-6 text-center space-y-3 bg-white">
+            <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+              <i data-lucide="message-square-dashed" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-800">No posts match this view yet</h3>
+            <p class="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+              Try switching filters, clearing your search, or publish the first post to start the conversation!
+            </p>
+            ${state.selectedTag || state.searchQuery ? `
+              <button onclick="resetFilters()" class="mt-2 px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-semibold hover:bg-indigo-100 transition">
+                Reset Filters
+              </button>
+            ` : ''}
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = posts.map((post) => {
+        const likes = post.likes || [];
+        const comments = post.comments || [];
+        const isLiked = currentUid && likes.includes(currentUid);
+        const isBookmarked = bookmarkSet.has(post.id);
+        const isOwnPost = currentUid && post.authorId === currentUid;
+        const isFollowing = followingSet.has(post.authorId);
+        const isThreadOpen = state.openCommentThreads.has(post.id);
+        const avatarContent = getAvatarContent(post.authorName, post.authorEmoji);
+
+        return `
+          <article class="bg-white p-4 sm:px-6 sm:py-5 hover:bg-slate-50/50 transition">
+            <div class="flex gap-3.5">
+              <!-- Author Avatar -->
+              <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl ${escapeHTML(post.authorColor || 'bg-indigo-600')} text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+                ${escapeHTML(avatarContent)}
+              </div>
+
+              <!-- Post Body -->
+              <div class="flex-1 min-w-0">
+                <!-- Author Meta Row -->
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
+                    <span class="font-bold text-sm text-slate-900 truncate">${escapeHTML(post.authorName)}</span>
+                    <span class="text-xs text-slate-500 truncate">@${escapeHTML(post.authorHandle)}</span>
+                    <span class="text-xs text-slate-300">•</span>
+                    <span class="text-xs text-slate-400">${formatRelativeTime(post.createdAt)}</span>
+                  </div>
+
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    ${!isOwnPost ? `
+                      <button onclick="toggleFollow('${escapeHTML(post.authorId)}')"
+                        class="px-3 py-1 rounded-full text-xs font-semibold transition ${
+                          isFollowing
+                            ? 'bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-600'
+                            : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                        }">
+                        ${isFollowing ? 'Following' : '+ Follow'}
+                      </button>
+                    ` : `
+                      <button onclick="promptDeletePost('${escapeHTML(post.id)}')" title="Delete post"
+                        class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                      </button>
+                    `}
+                  </div>
+                </div>
+
+                <!-- Category Tag Pill -->
+                ${post.tag ? `
+                  <div class="mt-1.5">
+                    <button onclick="filterByTag('${escapeHTML(post.tag)}')"
+                      class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50/80 text-indigo-600 hover:bg-indigo-100 transition">
+                      #${escapeHTML(post.tag)}
+                    </button>
+                  </div>
+                ` : ''}
+
+                <!-- Post Text Content -->
+                <p class="mt-2 text-sm sm:text-[15px] text-slate-800 whitespace-pre-line leading-relaxed break-words">${escapeHTML(post.content)}</p>
+
+                <!-- Optional Image Attachment -->
+                ${post.imageUrl ? `
+                  <div class="mt-3 rounded-2xl overflow-hidden border border-slate-200/80 bg-slate-100">
+                    <img src="${escapeHTML(post.imageUrl)}" alt="Post attachment" loading="lazy"
+                      onerror="this.parentElement.style.display='none'"
+                      class="w-full max-h-80 object-cover" />
+                  </div>
+                ` : ''}
+
+                <!-- Action Bar: Like, Comment, Bookmark -->
+                <div class="mt-3.5 flex items-center justify-between max-w-md pt-1">
+                  <!-- Like Button -->
+                  <button onclick="toggleLike('${escapeHTML(post.id)}', this)"
+                    class="group flex items-center gap-1.5 text-xs font-semibold py-1.5 px-2.5 -ml-2.5 rounded-xl transition ${
+                      isLiked ? 'text-rose-600 bg-rose-50/70' : 'text-slate-500 hover:text-rose-600 hover:bg-rose-50/60'
+                    }">
+                    <i data-lucide="heart" class="w-4 h-4 ${isLiked ? 'fill-current' : ''} group-active:scale-125 transition-transform"></i>
+                    <span>${likes.length}</span>
+                  </button>
+
+                  <!-- Comment Toggle Button -->
+                  <button onclick="toggleCommentThread('${escapeHTML(post.id)}')"
+                    class="flex items-center gap-1.5 text-xs font-semibold py-1.5 px-2.5 rounded-xl transition ${
+                      isThreadOpen ? 'text-indigo-600 bg-indigo-50/70' : 'text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/60'
+                    }">
+                    <i data-lucide="message-circle" class="w-4 h-4"></i>
+                    <span>${comments.length}</span>
+                  </button>
+
+                  <!-- Bookmark Button -->
+                  <button onclick="toggleBookmark('${escapeHTML(post.id)}')"
+                    class="flex items-center gap-1.5 text-xs font-semibold py-1.5 px-2.5 rounded-xl transition ${
+                      isBookmarked ? 'text-amber-600 bg-amber-50/80' : 'text-slate-500 hover:text-amber-600 hover:bg-amber-50/60'
+                    }">
+                    <i data-lucide="bookmark" class="w-4 h-4 ${isBookmarked ? 'fill-current' : ''}"></i>
+                    <span>${isBookmarked ? 'Saved' : 'Save'}</span>
+                  </button>
+                </div>
+
+                <!-- Expandable Comment Thread -->
+                ${isThreadOpen ? `
+                  <div class="mt-3.5 pt-3.5 border-t border-slate-100 space-y-3 animate-pop">
+                    <!-- Add Comment Input -->
+                    <form onsubmit="handleAddComment(event, '${escapeHTML(post.id)}')" class="flex items-center gap-2">
+                      <input type="text" name="commentText" required maxlength="280"
+                        placeholder="Write a reply..."
+                        class="flex-1 px-3.5 py-2 rounded-xl bg-slate-100 focus:bg-white border border-transparent focus:border-indigo-300 text-xs focus:outline-none transition" />
+                      <button type="submit"
+                        class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition shrink-0">
+                        Reply
+                      </button>
+                    </form>
+
+                    <!-- Existing Comments List -->
+                    <div class="space-y-2.5">
+                      ${comments.length === 0
+                        ? `<p class="text-xs text-slate-400 italic px-1">No comments yet. Be the first to reply!</p>`
+                        : comments.map((c) => `
+                          <div class="flex gap-2.5 p-2.5 rounded-2xl bg-slate-50 border border-slate-100">
+                            <div class="w-7 h-7 rounded-xl ${escapeHTML(c.authorColor || 'bg-slate-600')} text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                              ${escapeHTML(getAvatarContent(c.authorName, c.authorEmoji))}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                              <div class="flex items-center gap-1.5">
+                                <span class="text-xs font-bold text-slate-800 truncate">${escapeHTML(c.authorName)}</span>
+                                <span class="text-[11px] text-slate-400">@${escapeHTML(c.authorHandle)}</span>
+                                <span class="text-[11px] text-slate-300">•</span>
+                                <span class="text-[11px] text-slate-400">${formatRelativeTime(c.createdAt)}</span>
+                              </div>
+                              <p class="text-xs text-slate-700 mt-0.5 leading-relaxed break-words">${escapeHTML(c.text)}</p>
+                            </div>
+                          </div>
+                        `).join('')
+                      }
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderRightSidebar() {
+      // 1. Compute Trending Tags from Posts
+      const tagCounts = {};
+      state.posts.forEach((p) => {
+        if (p.tag) {
+          tagCounts[p.tag] = (tagCounts[p.tag] || 0) + 1;
+        }
+      });
+      const defaultTags = ['Tech', 'Design', 'BuildInPublic', 'Lifestyle', 'General'];
+      defaultTags.forEach((t) => {
+        if (!tagCounts[t]) tagCounts[t] = 0;
+      });
+
+      const sortedTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      const trendingEl = document.getElementById('trending-topics-list');
+      if (trendingEl) {
+        trendingEl.innerHTML = sortedTags.map(([tag, count]) => `
+          <button onclick="filterByTag('${escapeHTML(tag)}')"
+            class="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition text-left group">
+            <div>
+              <span class="text-xs font-bold text-slate-800 group-hover:text-indigo-600 transition block">#${escapeHTML(tag)}</span>
+              <span class="text-[11px] text-slate-400">${count} ${count === 1 ? 'post' : 'posts'}</span>
+            </div>
+            <i data-lucide="arrow-up-right" class="w-4 h-4 text-slate-300 group-hover:text-indigo-500 transition"></i>
+          </button>
+        `).join('');
+      }
+
+      // 2. Suggested Creators to Follow
+      const currentUid = state.user?.uid;
+      const followingSet = new Set(state.profile.following || []);
+      const otherCreators = state.creators.filter((c) => c.uid !== currentUid).slice(0, 4);
+      const creatorsEl = document.getElementById('suggested-creators-list');
+
+      if (creatorsEl) {
+        if (otherCreators.length === 0) {
+          creatorsEl.innerHTML = `<p class="text-xs text-slate-400">More creators will appear here as they join!</p>`;
+        } else {
+          creatorsEl.innerHTML = otherCreators.map((c) => {
+            const isFollowing = followingSet.has(c.uid);
+            return `
+              <div class="flex items-center justify-between gap-2.5">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-9 h-9 rounded-xl ${escapeHTML(c.avatarColor || 'bg-indigo-600')} text-white flex items-center justify-center text-xs font-bold shrink-0">
+                    ${escapeHTML(getAvatarContent(c.displayName, c.avatarEmoji))}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-xs font-bold text-slate-900 truncate">${escapeHTML(c.displayName)}</p>
+                    <p class="text-[11px] text-slate-500 truncate">@${escapeHTML(c.handle)}</p>
+                  </div>
+                </div>
+                <button onclick="toggleFollow('${escapeHTML(c.uid)}')"
+                  class="px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition ${
+                    isFollowing
+                      ? 'bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-600'
+                      : 'bg-slate-900 text-white hover:bg-indigo-600'
+                  }">
+                  ${isFollowing ? 'Following' : 'Follow'}
+                </button>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    function renderExploreTopics() {
+      const grid = document.getElementById('explore-tags-grid');
+      if (!grid) return;
+      const tags = ['All', 'Tech', 'Design', 'BuildInPublic', 'Lifestyle', 'General'];
+      grid.innerHTML = tags.map((tag) => {
+        const isSelected = (tag === 'All' && !state.selectedTag) || state.selectedTag === tag;
+        return `
+          <button onclick="${tag === 'All' ? 'clearTagFilter()' : `filterByTag('${tag}')`}"
+            class="px-3.5 py-2 rounded-xl text-xs font-semibold transition ${
+              isSelected
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200/70'
+            }">
+            ${tag === 'All' ? '✨ All Topics' : `#${tag}`}
+          </button>
+        `;
+      }).join('');
+    }
+
+    // --- Interactive Actions (Posts, Likes, Comments, Follow, Bookmarks) ---
+    window.handleCreatePost = async function () {
+      const input = document.getElementById('post-content-input');
+      const imageInput = document.getElementById('post-image-url');
+      const btn = document.getElementById('publish-post-btn');
+      const content = input.value.trim();
+      const imageUrl = imageInput.value.trim();
+
+      if (!content && !imageUrl) {
+        showToast('Write a message or attach a photo first!', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      const newPost = {
+        authorId: state.user?.uid || 'guest',
+        authorName: state.profile.displayName,
+        authorHandle: state.profile.handle,
+        authorColor: state.profile.avatarColor,
+        authorEmoji: state.profile.avatarEmoji || '',
+        content,
+        tag: state.composerTag,
+        imageUrl: imageUrl || '',
+        likes: [],
+        comments: [],
+        createdAt: Date.now()
+      };
+
+      try {
+        if (db && state.user) {
+          const postsCol = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
+          await addDoc(postsCol, newPost);
+        } else {
+          state.posts.unshift({ id: 'local_' + Date.now(), ...newPost });
+          renderAll();
+        }
+
+        // Reset composer
+        input.value = '';
+        imageInput.value = '';
+        document.getElementById('char-counter').textContent = '0/500';
+        toggleImageDrawer(false);
+        showToast('Published to live feed!', 'success');
+      } catch (err) {
+        console.error('Failed to publish post:', err);
+        showToast('Could not publish post. Try again.', 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    window.toggleLike = async function (postId, btnEl) {
+      const uid = state.user?.uid;
+      if (!uid) return;
+      const post = state.posts.find((p) => p.id === postId);
+      if (!post) return;
+
+      if (btnEl) {
+        const icon = btnEl.querySelector('svg');
+        if (icon) icon.classList.add('heart-bounce');
+      }
+
+      const alreadyLiked = (post.likes || []).includes(uid);
+
+      try {
+        if (db) {
+          const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'posts', postId);
+          await updateDoc(postRef, {
+            likes: alreadyLiked ? arrayRemove(uid) : arrayUnion(uid)
+          });
+        } else {
+          post.likes = alreadyLiked
+            ? post.likes.filter((id) => id !== uid)
+            : [...(post.likes || []), uid];
+          renderAll();
+        }
+      } catch (err) {
+        console.error('Error toggling like:', err);
+      }
+    };
+
+    window.toggleCommentThread = function (postId) {
+      if (state.openCommentThreads.has(postId)) {
+        state.openCommentThreads.delete(postId);
+      } else {
+        state.openCommentThreads.add(postId);
+      }
+      renderFeed();
+      lucide.createIcons();
+    };
+
+    window.handleAddComment = async function (event, postId) {
+      event.preventDefault();
+      const form = event.target;
+      const input = form.elements.commentText;
+      const text = input.value.trim();
+      if (!text) return;
+
+      const commentObj = {
+        id: 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        authorId: state.user?.uid || 'guest',
+        authorName: state.profile.displayName,
+        authorHandle: state.profile.handle,
+        authorColor: state.profile.avatarColor,
+        authorEmoji: state.profile.avatarEmoji || '',
+        text,
+        createdAt: Date.now()
+      };
+
+      input.value = '';
+      state.openCommentThreads.add(postId);
+
+      try {
+        if (db) {
+          const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'posts', postId);
+          await updateDoc(postRef, {
+            comments: arrayUnion(commentObj)
+          });
+        } else {
+          const post = state.posts.find((p) => p.id === postId);
+          if (post) {
+            post.comments = [...(post.comments || []), commentObj];
+            renderAll();
+          }
+        }
+        showToast('Reply added', 'success');
+      } catch (err) {
+        console.error('Error adding comment:', err);
+        showToast('Could not send reply', 'error');
+      }
+    };
+
+    window.toggleFollow = async function (targetUid) {
+      if (!targetUid || targetUid === state.user?.uid) return;
+      const currentFollowing = new Set(state.profile.following || []);
+      const isFollowing = currentFollowing.has(targetUid);
+
+      if (isFollowing) {
+        currentFollowing.delete(targetUid);
+        showToast('Unfollowed creator');
+      } else {
+        currentFollowing.add(targetUid);
+        showToast('Following creator!', 'success');
+      }
+
+      state.profile.following = Array.from(currentFollowing);
+      renderAll();
+
+      if (db && state.user) {
+        try {
+          const privateProfileRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'profile', 'main');
+          await setDoc(privateProfileRef, { following: state.profile.following }, { merge: true });
+        } catch (err) {
+          console.error('Error updating following list:', err);
+        }
+      }
+    };
+
+    window.toggleBookmark = async function (postId) {
+      const currentBookmarks = new Set(state.profile.bookmarks || []);
+      const isSaved = currentBookmarks.has(postId);
+
+      if (isSaved) {
+        currentBookmarks.delete(postId);
+        showToast('Removed from Bookmarks');
+      } else {
+        currentBookmarks.add(postId);
+        showToast('Saved to Bookmarks', 'success');
+      }
+
+      state.profile.bookmarks = Array.from(currentBookmarks);
+      renderAll();
+
+      if (db && state.user) {
+        try {
+          const privateProfileRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'profile', 'main');
+          await setDoc(privateProfileRef, { bookmarks: state.profile.bookmarks }, { merge: true });
+        } catch (err) {
+          console.error('Error saving bookmark:', err);
+        }
+      }
+    };
+
+    // --- Delete Post Modal Flow ---
+    window.promptDeletePost = function (postId) {
+      state.pendingDeletePostId = postId;
+      document.getElementById('delete-modal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.closeDeleteModal = function () {
+      state.pendingDeletePostId = null;
+      document.getElementById('delete-modal').classList.add('hidden');
+    };
+
+    document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+      const postId = state.pendingDeletePostId;
+      closeDeleteModal();
+      if (!postId) return;
+
+      try {
+        if (db) {
+          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'posts', postId));
+        } else {
+          state.posts = state.posts.filter((p) => p.id !== postId);
+          renderAll();
+        }
+        showToast('Post deleted', 'success');
+      } catch (err) {
+        console.error('Delete post error:', err);
+        showToast('Failed to delete post', 'error');
+      }
+    });
+
+    // --- Navigation, Filters & Composer Controls ---
+    window.switchTab = function (tab) {
+      state.activeTab = tab;
+
+      // Update Desktop Nav styling
+      document.querySelectorAll('.nav-item').forEach((btn) => {
+        const active = btn.dataset.nav === tab;
+        btn.className = active
+          ? 'nav-item w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-semibold text-sm transition bg-indigo-50 text-indigo-700'
+          : 'nav-item w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-semibold text-sm text-slate-600 hover:bg-slate-100 transition';
+      });
+
+      // Update Mobile Bottom Nav styling
+      document.querySelectorAll('.mobile-nav-btn').forEach((btn) => {
+        const active = btn.dataset.mobileNav === tab;
+        btn.className = active
+          ? 'mobile-nav-btn flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-indigo-600 font-semibold'
+          : 'mobile-nav-btn flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-slate-500 font-medium';
+      });
+
+      // Configure View Headers & Panels
+      const titles = {
+        home: ['Home Feed', 'Real-time updates from creators across Pulse'],
+        explore: ['Explore & Topics', 'Discover trending conversations and tags'],
+        bookmarks: ['Saved Bookmarks', 'Posts you saved for quick reference'],
+        profile: ['Your Profile', 'Manage your identity and view your posts']
+      };
+      document.getElementById('view-title').textContent = titles[tab][0];
+      document.getElementById('view-subtitle').textContent = titles[tab][1];
+
+      document.getElementById('profile-view-header').classList.toggle('hidden', tab !== 'profile');
+      document.getElementById('explore-topics-panel').classList.toggle('hidden', tab !== 'explore');
+      document.getElementById('post-composer-card').classList.toggle('hidden', tab === 'bookmarks' || tab === 'explore');
+      document.getElementById('feed-filter-bar').classList.toggle('hidden', tab === 'bookmarks' || tab === 'profile');
+
+      renderAll();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.setFeedFilter = function (filter) {
+      state.feedFilter = filter;
+      document.querySelectorAll('.filter-pill').forEach((btn) => {
+        const active = btn.dataset.filter === filter;
+        btn.className = active
+          ? 'filter-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-white transition shrink-0'
+          : 'filter-pill px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200/70 transition shrink-0 flex items-center gap-1';
+      });
+      renderFeed();
+      lucide.createIcons();
+    };
+
+    window.filterByTag = function (tag) {
+      state.selectedTag = tag;
+      const pill = document.getElementById('active-tag-pill');
+      document.getElementById('active-tag-label').textContent = `#${tag}`;
+      pill.classList.remove('hidden');
+      pill.classList.add('inline-flex');
+      renderAll();
+    };
+
+    window.clearTagFilter = function () {
+      state.selectedTag = null;
+      const pill = document.getElementById('active-tag-pill');
+      pill.classList.add('hidden');
+      pill.classList.remove('inline-flex');
+      renderAll();
+    };
+
+    window.resetFilters = function () {
+      state.selectedTag = null;
+      state.searchQuery = '';
+      state.feedFilter = 'all';
+      document.getElementById('desktop-search-input').value = '';
+      document.getElementById('mobile-search-input').value = '';
+      clearTagFilter();
+      setFeedFilter('all');
+    };
+
+    window.focusComposer = function () {
+      if (state.activeTab !== 'home' && state.activeTab !== 'profile') {
+        switchTab('home');
+      }
+      const textarea = document.getElementById('post-content-input');
+      textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => textarea.focus(), 200);
+    };
+
+    window.selectComposerTag = function (tag) {
+      state.composerTag = tag;
+      document.querySelectorAll('.composer-tag-btn').forEach((btn) => {
+        const active = btn.dataset.composerTag === tag;
+        btn.className = active
+          ? 'composer-tag-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 transition'
+          : 'composer-tag-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 border border-transparent hover:bg-slate-200/70 transition';
+      });
+    };
+
+    window.toggleImageDrawer = function (forceState) {
+      const drawer = document.getElementById('image-attachment-drawer');
+      const shouldShow = typeof forceState === 'boolean' ? forceState : drawer.classList.contains('hidden');
+      drawer.classList.toggle('hidden', !shouldShow);
+      if (!shouldShow) {
+        document.getElementById('composer-image-preview-wrap').classList.add('hidden');
+      }
+      lucide.createIcons();
+    };
+
+    window.selectPresetPhoto = function (url) {
+      const input = document.getElementById('post-image-url');
+      input.value = url;
+      previewComposerImage(url);
+    };
+
+    window.previewComposerImage = function (url) {
+      const wrap = document.getElementById('composer-image-preview-wrap');
+      const img = document.getElementById('composer-image-preview');
+      if (url && url.trim().startsWith('http')) {
+        img.src = url.trim();
+        wrap.classList.remove('hidden');
+      } else {
+        wrap.classList.add('hidden');
+      }
+    };
+
+    // --- Profile Modal Controls ---
+    window.openProfileModal = function () {
+      state.modalColor = state.profile.avatarColor || 'bg-indigo-600';
+      state.modalEmoji = state.profile.avatarEmoji || '';
+
+      document.getElementById('input-display-name').value = state.profile.displayName;
+      document.getElementById('input-handle').value = state.profile.handle;
+      document.getElementById('input-bio').value = state.profile.bio || '';
+
+      selectAvatarColor(state.modalColor);
+      updateModalAvatarPreview();
+      document.getElementById('profile-modal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.closeProfileModal = function () {
+      document.getElementById('profile-modal').classList.add('hidden');
+    };
+
+    window.selectAvatarColor = function (colorClass) {
+      state.modalColor = colorClass;
+      document.querySelectorAll('#avatar-color-picker button').forEach((btn) => {
+        const selected = btn.dataset.color === colorClass;
+        btn.className = `w-6 h-6 rounded-full ${btn.dataset.color} ${selected ? 'ring-2 ring-offset-2 ring-slate-800 scale-110' : ''} transition`;
+      });
+      updateModalAvatarPreview();
+    };
+
+    window.selectAvatarEmoji = function (emoji) {
+      state.modalEmoji = emoji;
+      updateModalAvatarPreview();
+    };
+
+    window.updateModalAvatarPreview = function () {
+      const preview = document.getElementById('modal-avatar-preview');
+      const nameVal = document.getElementById('input-display-name').value || state.profile.displayName;
+      preview.className = `w-16 h-16 rounded-2xl ${state.modalColor} text-white flex items-center justify-center text-2xl font-extrabold shadow-sm shrink-0`;
+      preview.textContent = getAvatarContent(nameVal, state.modalEmoji);
+    };
+
+    window.saveUserProfile = async function (event) {
+      event.preventDefault();
+      const displayName = document.getElementById('input-display-name').value.trim();
+      const rawHandle = document.getElementById('input-handle').value.trim().replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+      const bio = document.getElementById('input-bio').value.trim();
+
+      if (!displayName || !rawHandle) {
+        showToast('Please enter a valid display name and handle', 'error');
+        return;
+      }
+
+      state.profile = {
+        ...state.profile,
+        displayName,
+        handle: rawHandle,
+        bio,
+        avatarColor: state.modalColor,
+        avatarEmoji: state.modalEmoji
+      };
+
+      closeProfileModal();
+      renderAll();
+      showToast('Profile saved to cloud!', 'success');
+
+      if (db && state.user) {
+        try {
+          const privateProfileRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'profile', 'main');
+          const publicCreatorRef = doc(db, 'artifacts', appId, 'public', 'data', 'creators', state.user.uid);
+          await setDoc(privateProfileRef, state.profile, { merge: true });
+          await setDoc(publicCreatorRef, {
+            uid: state.user.uid,
+            displayName: state.profile.displayName,
+            handle: state.profile.handle,
+            bio: state.profile.bio,
+            avatarColor: state.profile.avatarColor,
+            avatarEmoji: state.profile.avatarEmoji
+          }, { merge: true });
+        } catch (err) {
+          console.error('Error saving profile:', err);
+        }
+      }
+    };
+
+    // --- Event Listeners Setup ---
+    function setupEventListeners() {
+      // Character counter
+      const composerInput = document.getElementById('post-content-input');
+      composerInput.addEventListener('input', () => {
+        document.getElementById('char-counter').textContent = `${composerInput.value.length}/500`;
+      });
+
+      // Search synchronization (Desktop + Mobile)
+      const desktopSearch = document.getElementById('desktop-search-input');
+      const desktopClear = document.getElementById('desktop-search-clear');
+      const mobileSearch = document.getElementById('mobile-search-input');
+      const mobileClear = document.getElementById('mobile-search-clear');
+
+      function handleSearchChange(val) {
+        state.searchQuery = val;
+        desktopSearch.value = val;
+        mobileSearch.value = val;
+        desktopClear.classList.toggle('hidden', !val);
+        mobileClear.classList.toggle('hidden', !val);
+        renderFeed();
+        lucide.createIcons();
+      }
+
+      desktopSearch.addEventListener('input', (e) => handleSearchChange(e.target.value));
+      mobileSearch.addEventListener('input', (e) => handleSearchChange(e.target.value));
+      desktopClear.addEventListener('click', () => handleSearchChange(''));
+      mobileClear.addEventListener('click', () => handleSearchChange(''));
+
+      // Mobile top search toggle & profile quick button
+      document.getElementById('mobile-search-toggle').addEventListener('click', () => {
+        const bar = document.getElementById('mobile-search-bar');
+        bar.classList.toggle('hidden');
+        if (!bar.classList.contains('hidden')) {
+          mobileSearch.focus();
+        }
+      });
+
+      document.getElementById('mobile-profile-btn').addEventListener('click', () => {
+        switchTab('profile');
+      });
+    }
+
+    // Boot application
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
