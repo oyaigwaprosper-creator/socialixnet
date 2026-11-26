@@ -418,7 +418,7 @@
 
       <!-- Footer Info -->
       <p class="text-[11px] text-slate-400 px-2 leading-relaxed">
-        Pulse Cloud Social • Real-time Firestore persistence enabled across sessions and devices.
+        Pulse Social • Posts, likes and replies are saved online and shared with everyone.
       </p>
     </aside>
   </div>
@@ -549,38 +549,29 @@
     </div>
   </div>
 
-  <!-- FIREBASE & APPLICATION LOGIC -->
+  <!-- APPLICATION LOGIC -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import {
-      getFirestore,
-      doc,
-      getDoc,
-      setDoc,
-      addDoc,
-      updateDoc,
-      deleteDoc,
-      onSnapshot,
-      collection,
-      getDocs,
-      arrayUnion,
-      arrayRemove
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    // --- Firebase Configuration & Initialization ---
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'pulse-social-default';
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-
-    let app = null;
-    let auth = null;
-    let db = null;
-
-    if (firebaseConfig) {
-      app = initializeApp(firebaseConfig);
-      auth = getAuth(app);
-      db = getFirestore(app);
+    // --- API Client (Netlify Server + Netlify Database) ---
+    async function api(path, { method = 'GET', body } = {}) {
+      const res = await fetch('/api' + path, {
+        method,
+        credentials: 'same-origin',
+        headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+        body: body !== undefined ? JSON.stringify(body) : undefined
+      });
+      let data = null;
+      try { data = await res.json(); } catch (_) { /* empty body */ }
+      if (!res.ok) {
+        const err = new Error((data && data.error) || `Request failed (${res.status})`);
+        err.status = res.status;
+        throw err;
+      }
+      return data;
     }
+
+    const FEED_REFRESH_MS = 8000;
+    let feedTimer = null;
+    let feedLoading = false;
 
     // --- Application State ---
     const state = {
@@ -606,98 +597,6 @@
       openCommentThreads: new Set(),
       pendingDeletePostId: null
     };
-
-    // --- Starter Seed Data (Used if public posts collection is empty) ---
-    const STARTER_CREATORS = [
-      {
-        uid: 'creator_maya',
-        displayName: 'Maya Lin',
-        handle: 'mayalin',
-        bio: 'Product designer & coffee enthusiast crafting calm digital spaces.',
-        avatarColor: 'bg-violet-600',
-        avatarEmoji: '🎨'
-      },
-      {
-        uid: 'creator_devon',
-        displayName: 'Devon Brooks',
-        handle: 'devonbuilds',
-        bio: 'Full-stack engineer shipping open-source tools & cloud apps.',
-        avatarColor: 'bg-emerald-600',
-        avatarEmoji: '⚡'
-      },
-      {
-        uid: 'creator_amara',
-        displayName: 'Amara Okafor',
-        handle: 'amara_codes',
-        bio: 'Tech storyteller, hiker, and community builder.',
-        avatarColor: 'bg-rose-600',
-        avatarEmoji: '🌍'
-      }
-    ];
-
-    const STARTER_POSTS = [
-      {
-        authorId: 'creator_maya',
-        authorName: 'Maya Lin',
-        authorHandle: 'mayalin',
-        authorColor: 'bg-violet-600',
-        authorEmoji: '🎨',
-        content: 'Just wrapped up a fresh UI refresh for our mobile workspace! Clean typography, generous breathing room, and fast tactile interactions make all the difference. What are you designing this week?',
-        tag: 'Design',
-        imageUrl: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=900&q=80',
-        likes: ['creator_devon', 'creator_amara'],
-        comments: [
-          {
-            id: 'c_seed_1',
-            authorId: 'creator_devon',
-            authorName: 'Devon Brooks',
-            authorHandle: 'devonbuilds',
-            authorColor: 'bg-emerald-600',
-            authorEmoji: '⚡',
-            text: 'Love the contrast and spacing on this! Super crisp.',
-            createdAt: Date.now() - 1000 * 60 * 35
-          }
-        ],
-        createdAt: Date.now() - 1000 * 60 * 95
-      },
-      {
-        authorId: 'creator_devon',
-        authorName: 'Devon Brooks',
-        authorHandle: 'devonbuilds',
-        authorColor: 'bg-emerald-600',
-        authorEmoji: '⚡',
-        content: 'Shipping real-time apps used to require managing WebSocket clusters from scratch. Now with reactive cloud listeners, posts, likes, and comments sync across devices in milliseconds. #BuildInPublic',
-        tag: 'BuildInPublic',
-        imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=900&q=80',
-        likes: ['creator_maya'],
-        comments: [],
-        createdAt: Date.now() - 1000 * 60 * 52
-      },
-      {
-        authorId: 'creator_amara',
-        authorName: 'Amara Okafor',
-        authorHandle: 'amara_codes',
-        authorColor: 'bg-rose-600',
-        authorEmoji: '🌍',
-        content: 'Stepped away from the keyboard for an early morning ridge hike before diving into code reviews. Fresh air is honestly the best debugging tool there is.',
-        tag: 'Lifestyle',
-        imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=900&q=80',
-        likes: ['creator_maya', 'creator_devon'],
-        comments: [
-          {
-            id: 'c_seed_2',
-            authorId: 'creator_maya',
-            authorName: 'Maya Lin',
-            authorHandle: 'mayalin',
-            authorColor: 'bg-violet-600',
-            authorEmoji: '🎨',
-            text: 'That view is unreal! Adding this to my weekend list.',
-            createdAt: Date.now() - 1000 * 60 * 12
-          }
-        ],
-        createdAt: Date.now() - 1000 * 60 * 22
-      }
-    ];
 
     // --- Helper Utilities ---
     function escapeHTML(str) {
@@ -747,144 +646,68 @@
       }, 2800);
     }
 
-    // --- Authentication & Cloud Initialization ---
+    // --- Session & Live Data ---
     async function initApp() {
       lucide.createIcons();
       setupEventListeners();
+      await connect();
+    }
 
-      if (!auth || !db) {
-        showToast('Running in offline preview mode', 'info');
-        loadOfflineFallback();
+    async function connect() {
+      try {
+        const profile = await api('/me');
+        applyProfile(profile);
+      } catch (err) {
+        console.error('Session error:', err);
+        showToast('Could not connect to Pulse. Retrying…', 'error');
+        setTimeout(connect, 4000);
         return;
       }
 
+      await refreshFeed();
+      startFeedPolling();
+    }
+
+    function applyProfile(profile) {
+      if (!profile) return;
+      const { uid, ...rest } = profile;
+      state.user = { uid };
+      state.profile = { ...state.profile, ...rest };
+      updateProfileUI();
+    }
+
+    async function refreshFeed() {
+      if (feedLoading) return;
+      feedLoading = true;
       try {
-        // RULE 3: Authenticate FIRST before any Firestore operations
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-
-        onAuthStateChanged(auth, async (user) => {
-          if (!user) return;
-          state.user = user;
-          await ensureUserProfile(user);
-          await seedDatabaseIfEmpty();
-          subscribeToCloudData();
-        });
-      } catch (err) {
-        console.error('Auth initialization error:', err);
-        showToast('Could not connect to cloud auth. Using local session.', 'error');
-        loadOfflineFallback();
-      }
-    }
-
-    function loadOfflineFallback() {
-      state.user = { uid: 'local_guest_' + Math.floor(Math.random() * 10000) };
-      state.creators = [...STARTER_CREATORS];
-      state.posts = STARTER_POSTS.map((p, idx) => ({ id: 'seed_' + idx, ...p }));
-      renderAll();
-    }
-
-    async function ensureUserProfile(user) {
-      if (!user || !db) return;
-      const privateProfileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
-      const publicCreatorRef = doc(db, 'artifacts', appId, 'public', 'data', 'creators', user.uid);
-
-      try {
-        const snap = await getDoc(privateProfileRef);
-        if (snap.exists()) {
-          state.profile = { ...state.profile, ...snap.data() };
-        } else {
-          const shortTag = user.uid.slice(0, 5).toLowerCase();
-          state.profile = {
-            displayName: `Creator ${shortTag.toUpperCase()}`,
-            handle: `creator_${shortTag}`,
-            bio: 'Sharing ideas, building projects, and exploring Pulse.',
-            avatarColor: 'bg-indigo-600',
-            avatarEmoji: '🚀',
-            following: ['creator_maya', 'creator_devon'],
-            bookmarks: []
-          };
-          await setDoc(privateProfileRef, state.profile);
-        }
-
-        // Sync public creator directory card
-        await setDoc(publicCreatorRef, {
-          uid: user.uid,
-          displayName: state.profile.displayName,
-          handle: state.profile.handle,
-          bio: state.profile.bio,
-          avatarColor: state.profile.avatarColor,
-          avatarEmoji: state.profile.avatarEmoji || ''
-        }, { merge: true });
-
-        updateProfileUI();
-      } catch (err) {
-        console.error('Error loading user profile:', err);
-      }
-    }
-
-    async function seedDatabaseIfEmpty() {
-      if (!state.user || !db) return;
-      try {
-        const postsCol = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
-        const snapshot = await getDocs(postsCol);
-        if (snapshot.empty) {
-          // Seed starter creators
-          for (const creator of STARTER_CREATORS) {
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'creators', creator.uid), creator);
-          }
-          // Seed starter posts
-          for (const post of STARTER_POSTS) {
-            await addDoc(postsCol, post);
-          }
-        }
-      } catch (err) {
-        console.error('Error seeding starter data:', err);
-      }
-    }
-
-    function subscribeToCloudData() {
-      if (!state.user || !db) return;
-
-      // 1. Real-time Posts Listener (Simple collection query per Rule 2)
-      const postsCol = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
-      onSnapshot(
-        postsCol,
-        (snapshot) => {
-          const loadedPosts = [];
-          snapshot.forEach((docSnap) => {
-            loadedPosts.push({ id: docSnap.id, ...docSnap.data() });
-          });
-          // Sort in JavaScript memory (newest first)
-          loadedPosts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-          state.posts = loadedPosts;
-          renderAll();
-        },
-        (error) => {
-          console.error('Posts listener error:', error);
-          showToast('Error syncing live feed', 'error');
-        }
-      );
-
-      // 2. Real-time Creators Directory Listener
-      const creatorsCol = collection(db, 'artifacts', appId, 'public', 'data', 'creators');
-      onSnapshot(
-        creatorsCol,
-        (snapshot) => {
-          const loadedCreators = [];
-          snapshot.forEach((docSnap) => {
-            loadedCreators.push({ uid: docSnap.id, ...docSnap.data() });
-          });
-          state.creators = loadedCreators;
+        const data = await api('/feed');
+        state.posts = data.posts || [];
+        state.creators = data.creators || [];
+        // Don't wipe a reply someone is typing
+        const active = document.activeElement;
+        const typingReply = active && active.name === 'commentText' && active.value;
+        if (typingReply) {
+          updateProfileUI();
           renderRightSidebar();
-        },
-        (error) => {
-          console.error('Creators listener error:', error);
+          lucide.createIcons();
+        } else {
+          renderAll();
         }
-      );
+      } catch (err) {
+        console.error('Feed refresh error:', err);
+      } finally {
+        feedLoading = false;
+      }
+    }
+
+    function startFeedPolling() {
+      clearInterval(feedTimer);
+      feedTimer = setInterval(() => {
+        if (document.visibilityState === 'visible') refreshFeed();
+      }, FEED_REFRESH_MS);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshFeed();
+      });
     }
 
     // --- UI Synchronization & Rendering ---
@@ -1256,28 +1079,13 @@
       }
 
       btn.disabled = true;
-      const newPost = {
-        authorId: state.user?.uid || 'guest',
-        authorName: state.profile.displayName,
-        authorHandle: state.profile.handle,
-        authorColor: state.profile.avatarColor,
-        authorEmoji: state.profile.avatarEmoji || '',
-        content,
-        tag: state.composerTag,
-        imageUrl: imageUrl || '',
-        likes: [],
-        comments: [],
-        createdAt: Date.now()
-      };
 
       try {
-        if (db && state.user) {
-          const postsCol = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
-          await addDoc(postsCol, newPost);
-        } else {
-          state.posts.unshift({ id: 'local_' + Date.now(), ...newPost });
-          renderAll();
-        }
+        await api('/posts', {
+          method: 'POST',
+          body: { content, imageUrl, tag: state.composerTag }
+        });
+        await refreshFeed();
 
         // Reset composer
         input.value = '';
@@ -1287,7 +1095,7 @@
         showToast('Published to live feed!', 'success');
       } catch (err) {
         console.error('Failed to publish post:', err);
-        showToast('Could not publish post. Try again.', 'error');
+        showToast(err.message || 'Could not publish post. Try again.', 'error');
       } finally {
         btn.disabled = false;
       }
@@ -1305,21 +1113,20 @@
       }
 
       const alreadyLiked = (post.likes || []).includes(uid);
+      const previous = post.likes || [];
+      // Optimistic update
+      post.likes = alreadyLiked ? previous.filter((id) => id !== uid) : [...previous, uid];
+      renderAll();
 
       try {
-        if (db) {
-          const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'posts', postId);
-          await updateDoc(postRef, {
-            likes: alreadyLiked ? arrayRemove(uid) : arrayUnion(uid)
-          });
-        } else {
-          post.likes = alreadyLiked
-            ? post.likes.filter((id) => id !== uid)
-            : [...(post.likes || []), uid];
-          renderAll();
-        }
+        const result = await api(`/posts/${encodeURIComponent(postId)}/like`, { method: 'POST' });
+        post.likes = result.likes;
+        renderAll();
       } catch (err) {
         console.error('Error toggling like:', err);
+        post.likes = previous;
+        renderAll();
+        showToast(err.message || 'Could not update like', 'error');
       }
     };
 
@@ -1340,37 +1147,24 @@
       const text = input.value.trim();
       if (!text) return;
 
-      const commentObj = {
-        id: 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        authorId: state.user?.uid || 'guest',
-        authorName: state.profile.displayName,
-        authorHandle: state.profile.handle,
-        authorColor: state.profile.avatarColor,
-        authorEmoji: state.profile.avatarEmoji || '',
-        text,
-        createdAt: Date.now()
-      };
-
       input.value = '';
       state.openCommentThreads.add(postId);
 
       try {
-        if (db) {
-          const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'posts', postId);
-          await updateDoc(postRef, {
-            comments: arrayUnion(commentObj)
-          });
-        } else {
-          const post = state.posts.find((p) => p.id === postId);
-          if (post) {
-            post.comments = [...(post.comments || []), commentObj];
-            renderAll();
-          }
+        const comment = await api(`/posts/${encodeURIComponent(postId)}/comments`, {
+          method: 'POST',
+          body: { text }
+        });
+        const post = state.posts.find((p) => p.id === postId);
+        if (post) {
+          post.comments = [...(post.comments || []), comment];
+          renderAll();
         }
         showToast('Reply added', 'success');
       } catch (err) {
         console.error('Error adding comment:', err);
-        showToast('Could not send reply', 'error');
+        input.value = text;
+        showToast(err.message || 'Could not send reply', 'error');
       }
     };
 
@@ -1387,16 +1181,18 @@
         showToast('Following creator!', 'success');
       }
 
+      const previous = state.profile.following || [];
       state.profile.following = Array.from(currentFollowing);
       renderAll();
 
-      if (db && state.user) {
-        try {
-          const privateProfileRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'profile', 'main');
-          await setDoc(privateProfileRef, { following: state.profile.following }, { merge: true });
-        } catch (err) {
-          console.error('Error updating following list:', err);
-        }
+      try {
+        applyProfile(await api(`/follow/${encodeURIComponent(targetUid)}`, { method: 'POST' }));
+        renderAll();
+      } catch (err) {
+        console.error('Error updating following list:', err);
+        state.profile.following = previous;
+        renderAll();
+        showToast(err.message || 'Could not update follow', 'error');
       }
     };
 
@@ -1412,16 +1208,18 @@
         showToast('Saved to Bookmarks', 'success');
       }
 
+      const previous = state.profile.bookmarks || [];
       state.profile.bookmarks = Array.from(currentBookmarks);
       renderAll();
 
-      if (db && state.user) {
-        try {
-          const privateProfileRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'profile', 'main');
-          await setDoc(privateProfileRef, { bookmarks: state.profile.bookmarks }, { merge: true });
-        } catch (err) {
-          console.error('Error saving bookmark:', err);
-        }
+      try {
+        applyProfile(await api(`/bookmarks/${encodeURIComponent(postId)}`, { method: 'POST' }));
+        renderAll();
+      } catch (err) {
+        console.error('Error saving bookmark:', err);
+        state.profile.bookmarks = previous;
+        renderAll();
+        showToast(err.message || 'Could not update bookmark', 'error');
       }
     };
 
@@ -1443,16 +1241,14 @@
       if (!postId) return;
 
       try {
-        if (db) {
-          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'posts', postId));
-        } else {
-          state.posts = state.posts.filter((p) => p.id !== postId);
-          renderAll();
-        }
+        await api(`/posts/${encodeURIComponent(postId)}`, { method: 'DELETE' });
+        state.posts = state.posts.filter((p) => p.id !== postId);
+        state.profile.bookmarks = (state.profile.bookmarks || []).filter((id) => id !== postId);
+        renderAll();
         showToast('Post deleted', 'success');
       } catch (err) {
         console.error('Delete post error:', err);
-        showToast('Failed to delete post', 'error');
+        showToast(err.message || 'Failed to delete post', 'error');
       }
     });
 
@@ -1631,35 +1427,28 @@
         return;
       }
 
-      state.profile = {
-        ...state.profile,
-        displayName,
-        handle: rawHandle,
-        bio,
-        avatarColor: state.modalColor,
-        avatarEmoji: state.modalEmoji
-      };
+      const submitBtn = event.submitter;
+      if (submitBtn) submitBtn.disabled = true;
 
-      closeProfileModal();
-      renderAll();
-      showToast('Profile saved to cloud!', 'success');
-
-      if (db && state.user) {
-        try {
-          const privateProfileRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'profile', 'main');
-          const publicCreatorRef = doc(db, 'artifacts', appId, 'public', 'data', 'creators', state.user.uid);
-          await setDoc(privateProfileRef, state.profile, { merge: true });
-          await setDoc(publicCreatorRef, {
-            uid: state.user.uid,
-            displayName: state.profile.displayName,
-            handle: state.profile.handle,
-            bio: state.profile.bio,
-            avatarColor: state.profile.avatarColor,
-            avatarEmoji: state.profile.avatarEmoji
-          }, { merge: true });
-        } catch (err) {
-          console.error('Error saving profile:', err);
-        }
+      try {
+        applyProfile(await api('/me', {
+          method: 'PUT',
+          body: {
+            displayName,
+            handle: rawHandle,
+            bio,
+            avatarColor: state.modalColor,
+            avatarEmoji: state.modalEmoji
+          }
+        }));
+        closeProfileModal();
+        await refreshFeed();
+        showToast('Profile saved!', 'success');
+      } catch (err) {
+        console.error('Error saving profile:', err);
+        showToast(err.message || 'Could not save profile', 'error');
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
       }
     };
 
